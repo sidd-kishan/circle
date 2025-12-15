@@ -178,11 +178,6 @@ boolean CPWMSoundBaseDevice::Start (void)
 
 void CPWMSoundBaseDevice::Cancel (void)
 {
-	// avoid clicks
-	PeripheralEntry ();
-	write32 (PWM_CTL, read32 (PWM_CTL) | ARM_PWM_CTL_RPTL1 | ARM_PWM_CTL_RPTL2);
-	PeripheralExit ();
-
 	m_DMABuffers.Cancel ();
 }
 
