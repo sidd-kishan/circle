@@ -2,7 +2,7 @@
 // socket.cpp
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
-// Copyright (C) 2015-2025  R. Stange <rsta2@gmx.net>
+// Copyright (C) 2015-2026  R. Stange <rsta2@gmx.net>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -293,7 +293,8 @@ int CSocket::SendTo (const void *pBuffer, unsigned nLength, int nFlags,
 		return -NET_ERROR_OPERATION_NOT_SUPPORTED;
 	}
 
-	if (nForeignPort == 0)
+	if (   m_nProtocol == IPPROTO_UDP
+	    && nForeignPort == 0)
 	{
 		return -NET_ERROR_INVALID_VALUE;
 	}
