@@ -1,0 +1,28 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../../../Downloads/bochs-3.0/bochs-3.0"
+		}
+	],
+	"settings": {
+		"terminal.integrated.profiles.windows": {
+			"MSYS2-Bash": {
+				"path": "C:\\msys64\\usr\\bin\\bash.exe",
+				"args": [
+					"-lc",
+					"export PATH=\"$PATH:/c/Program Files (x86)/Arm GNU Toolchain aarch64-none-elf/14.3 rel1/bin\"; cd /c/Users/ayush/OneDrive/Desktop/circle; exec bash"
+				],
+				"env": {
+					"MSYSTEM": "MINGW64",
+					"CHERE_INVOKING": "1",
+					"PATH": "${env:PATH};C:\\Program Files (x86)\\Arm GNU Toolchain aarch64-none-elf\\14.3 rel1\\bin"
+				},
+				"icon": "terminal-bash"
+			}
+		},
+		"terminal.integrated.defaultProfile.windows": "MSYS2-Bash"
+	}
+}
