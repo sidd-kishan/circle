@@ -119,27 +119,53 @@ TShutdownMode CKernel::Run(void)
             {
                 Vector3D p = Add(Camera, Mul(rd, t));
                 Vector3D n = Normalize(Sub(p, Sphere));
+				/* -------- checker projection -------- */
 
-                // normalize light once if not already normalized
-				Vector3D L = Normalize(Light);
+				// scale controls checker size
+				const float scale = 8.0f;   // bigger squares
+				//const float scale = 8.0f;   // smaller squares
+
+
+				// project in world XZ plane (stable, no UVs needed)
+				int cx = (int)(p.x * scale);
+				int cz = (int)(p.z * scale);
+
+				// XOR pattern
+				bool checker = (cx ^ cz) & 1;
+
+				// red & black (current)
+				unsigned base_r = checker ? 255 : 0;
+
+				// red & white
+				base_r = checker ? 255 : 255;
+				unsigned base_g = checker ? 0   : 255;
+				unsigned base_b = checker ? 0   : 255;
+
+				// overwritten by black & white
+				//base_r = checker ? 255 : 0;
+				//base_g = base_r;
+				//base_b = base_r;
+
+
+				/* -------- illumination -------- */
+
+
+                Vector3D L = Normalize(Light);
 
 				float diffuse = Dot(n, L);
 				if (diffuse < 0.0f) diffuse = 0.0f;
 
-				// ambient + boosted diffuse
-				const float ambient = 0.45f;        // ↑ base brightness
-				float intensity = ambient + diffuse * 1.6f;
-
-				// cheap specular pop (optional but recommended)
-				intensity += diffuse * diffuse * 0.25f;
-
-				// clamp
+				const float ambient = 0.35f;
+				float intensity = ambient + diffuse * 1.4f;
 				if (intensity > 1.0f) intensity = 1.0f;
 
-				unsigned c = (unsigned)(intensity * 255.0f);
-				unsigned col = (c << 16) | (c << 8) | c;
+				// apply lighting
+				unsigned r = (unsigned)(base_r * intensity);
+				unsigned g = (unsigned)(base_g * intensity);
+				unsigned b = (unsigned)(base_b * intensity);
 
-				/* ---- illumination boost END ---- */
+				// pack RGB
+				unsigned col = (r << 16) | (g << 8) | b;
 
 				m_Screen.SetPixel(x, y, col);
             }
