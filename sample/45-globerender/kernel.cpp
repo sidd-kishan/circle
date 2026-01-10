@@ -32,6 +32,30 @@ static inline Vector3D Normalize(Vector3D v)
     return Mul(v, 1.0f/l);
 }
 
+// ===== Illumination control (DROP-IN) =====
+static inline unsigned char ShadePixel(float nx, float ny, float nz)
+{
+    // Camera-facing light
+    const float lx = 0.0f;
+    const float ly = 0.0f;
+    const float lz = 1.0f;
+
+    float diffuse = nx*lx + ny*ly + nz*lz;
+    if (diffuse < 0.0f) diffuse = 0.0f;
+
+    // ↑ INCREASE ILLUMINATION HERE
+    const float ambient = 0.45f;   // was likely 0 or too low
+    float intensity = ambient + diffuse * 1.6f;
+
+    // Optional specular pop (cheap)
+    intensity += diffuse * diffuse * 0.25f;
+
+    if (intensity > 1.0f) intensity = 1.0f;
+
+    return (unsigned char)(intensity * 255.0f);
+}
+
+
 static float SphereIntersect(Vector3D ro, Vector3D rd,
                              Vector3D c, float r)
 {
@@ -96,13 +120,28 @@ TShutdownMode CKernel::Run(void)
                 Vector3D p = Add(Camera, Mul(rd, t));
                 Vector3D n = Normalize(Sub(p, Sphere));
 
-                float l = Dot(n, Light);
-                if (l < 0) l = 0;
+                // normalize light once if not already normalized
+				Vector3D L = Normalize(Light);
 
-                unsigned c = (unsigned)(l * 255);
-                unsigned col = (c<<16)|(c<<8)|c;
+				float diffuse = Dot(n, L);
+				if (diffuse < 0.0f) diffuse = 0.0f;
 
-                m_Screen.SetPixel(x, y, col);
+				// ambient + boosted diffuse
+				const float ambient = 0.45f;        // ↑ base brightness
+				float intensity = ambient + diffuse * 1.6f;
+
+				// cheap specular pop (optional but recommended)
+				intensity += diffuse * diffuse * 0.25f;
+
+				// clamp
+				if (intensity > 1.0f) intensity = 1.0f;
+
+				unsigned c = (unsigned)(intensity * 255.0f);
+				unsigned col = (c << 16) | (c << 8) | c;
+
+				/* ---- illumination boost END ---- */
+
+				m_Screen.SetPixel(x, y, col);
             }
         }
 
