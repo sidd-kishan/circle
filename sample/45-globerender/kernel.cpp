@@ -253,7 +253,7 @@ TShutdownMode CKernel::Run(void)
             float v = (1.0f - 2.0f*y/m_Screen.GetHeight());
 
             Vector3D rd = Normalize({u,v,1});
-            float t = SphereIntersect(Camera, rd, Sphere, 1.0f);
+            float t = SphereIntersect(Camera, rd, Sphere, 1.5f);
 
             if (t > 0)
             {
