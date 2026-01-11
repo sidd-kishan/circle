@@ -40,8 +40,13 @@ static const TScreenColor BACKGROUND_COLOR = BLACK_COLOR;
 static const TScreenColor FOREGROUND_COLOR = BRIGHT_GREEN_COLOR;
 #endif
 
+unsigned screen_width = 800;
+unsigned screen_height = 800;
+
+
 CKernel::CKernel (void)
-:	m_Screen (800, 800)
+:
+m_2DGraphics (800, 800, TRUE)
 {
 }
 
@@ -51,26 +56,16 @@ CKernel::~CKernel (void)
 
 boolean CKernel::Initialize (void)
 {
-	return m_Screen.Initialize ();
+	return m_2DGraphics.Initialize ();
 }
 
-// Clear screen with background color
-void CKernel::Clear (void)
-{
-	for (unsigned y = 0; y < m_Screen.GetHeight (); y++)
-	{
-		for (unsigned x = 0; x < m_Screen.GetWidth (); x++)
-		{
-			m_Screen.SetPixel (x, y, BACKGROUND_COLOR);
-		}
-	}
-}
 
 // Convert normalized coordinates (-1..1) to screen coordinates
 Point2D CKernel::Screen (const Vector3D &p)
 {
-	unsigned width = m_Screen.GetWidth ();
-	unsigned height = m_Screen.GetHeight ();
+	
+	unsigned width = screen_width;
+	unsigned height = screen_height;
 	
 	// -1..1 => 0..2 => 0..1 => 0..width
 	int x = (int) ((p.x + 1.0f) / 2.0f * width);
@@ -111,47 +106,6 @@ Vector3D CKernel::RotateXZ (const Vector3D &v, float angle)
 	);
 }
 
-// Draw a line using Bresenham's algorithm
-void CKernel::DrawLine (int x1, int y1, int x2, int y2)
-{
-	int dx = (x2 > x1) ? (x2 - x1) : (x1 - x2);
-	int dy = (y2 > y1) ? (y2 - y1) : (y1 - y2);
-	int sx = (x1 < x2) ? 1 : -1;
-	int sy = (y1 < y2) ? 1 : -1;
-	int err = dx - dy;
-	
-	unsigned width = m_Screen.GetWidth ();
-	unsigned height = m_Screen.GetHeight ();
-	
-	int x = x1;
-	int y = y1;
-	
-	while (1)
-	{
-		// Only draw if within screen bounds
-		if (x >= 0 && (unsigned) x < width && y >= 0 && (unsigned) y < height)
-		{
-			m_Screen.SetPixel ((unsigned) x, (unsigned) y, FOREGROUND_COLOR);
-		}
-		
-		if (x == x2 && y == y2)
-			break;
-			
-		int e2 = 2 * err;
-		
-		if (e2 > -dy)
-		{
-			err -= dy;
-			x += sx;
-		}
-		
-		if (e2 < dx)
-		{
-			err += dx;
-			y += sy;
-		}
-	}
-}
 
 TShutdownMode CKernel::Run (void)
 {
@@ -161,12 +115,13 @@ TShutdownMode CKernel::Run (void)
 	
 	float angle = 0.0f;
 	float dz = 1.0f;
+	m_pShape = new CGraphicShape (&m_2DGraphics);
 	
 	while (1)
 	{
 		angle += M_PI * dt;
 		
-		Clear ();
+		m_2DGraphics.ClearScreen(CDisplay::Black);
 		
 		// Draw each face
 		for (unsigned f = 0; f < num_faces; f++)
@@ -197,8 +152,8 @@ TShutdownMode CKernel::Run (void)
 					// Convert to screen coordinates and draw line
 					Point2D screen_a = Screen (proj_a);
 					Point2D screen_b = Screen (proj_b);
-					
-					DrawLine (screen_a.x, screen_a.y, screen_b.x, screen_b.y);
+					m_pShape->DrawLine(screen_a.x, screen_a.y, screen_b.x, screen_b.y, FOREGROUND_COLOR);
+					//DrawLine (screen_a.x, screen_a.y, screen_b.x, screen_b.y);
 				}
 			}
 		}

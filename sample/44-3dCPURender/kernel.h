@@ -24,8 +24,11 @@
 #include <circle/koptions.h>
 #include <circle/devicenameservice.h>
 #include <circle/screen.h>
+#include <circle/2dgraphics.h>
 #include <circle/types.h>
+#include "graphicshape.h"
 #include "./penger.h"
+
 enum TShutdownMode
 {
 	ShutdownNone,
@@ -57,8 +60,8 @@ private:
 	CActLED			m_ActLED;
 	CKernelOptions		m_Options;
 	CDeviceNameService	m_DeviceNameService;
-	CScreenDevice		m_Screen;
-	
+	C2DGraphics		m_2DGraphics;
+	CGraphicShape		*m_pShape;
 };
 
 #endif
