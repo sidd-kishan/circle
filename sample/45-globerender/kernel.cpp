@@ -2,6 +2,10 @@
 #include <circle/timer.h>
 #include <math.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 /* =========================================================
    Local math helpers
    ========================================================= */
@@ -96,15 +100,133 @@ void CKernel::Clear(void)
         m_Screen.SetPixel(x, y, 0x000000);
 }
 
+// ============================================================================
+// Checker_WorldSpacePlanar_XZ
+//
+// PURPOSE:
+//   Implements a procedural checkerboard using WORLD-SPACE planar projection.
+//   This maps an infinite checker pattern onto the XZ plane, independent of
+//   object geometry or curvature.
+//
+// HISTORICAL / MATHEMATICAL CONTEXT:
+//   • Rooted in Euclidean geometry (c. 300 BCE):
+//       - Continuous space is subdivided into equal regions (tiling).
+//   • Uses parity (even/odd classification) studied by the Pythagoreans.
+//   • Mathematically equivalent to a 2D square lattice used in:
+//       - crystal structures (NaCl lattice)
+//       - diffraction gratings
+//       - early solid-state physics models
+//
+// PHYSICAL INTERPRETATION:
+//   This function evaluates a discrete lattice function:
+//       f(x,z) = (-1)^(⌊sx⌋ + ⌊sz⌋)
+//   which alternates sign across adjacent spatial cells.
+//
+// PARAMETERS:
+//   p     : world-space hit position on the surface
+//   scale : spatial frequency of the checker pattern
+//           (higher = smaller squares)
+//
+// RETURN VALUE:
+//   true  -> red square
+//   false -> black square
+// ============================================================================
+static inline bool Checker_WorldSpacePlanar_XZ(Vector3D p, float scale)
+{
+    // Convert continuous world-space X coordinate into a discrete cell index.
+    // This is a modern digital analogue of Euclidean spatial subdivision.
+    int cx = (int)(p.x * scale);
+
+    // Convert continuous world-space Z coordinate into a discrete cell index.
+    // Choosing XZ defines a planar projection similar to a "ground plane".
+    int cz = (int)(p.z * scale);
+
+    // XOR evaluates parity:
+    //   • same parity (even+even or odd+odd) → 0
+    //   • different parity                  → 1
+    //
+    // This parity alternation is the mathematical essence of a checkerboard.
+    return ((cx ^ cz) & 1) != 0;
+}
+
+
+// ============================================================================
+// Checker_SphericalUV_LatLong
+//
+// PURPOSE:
+//   Implements a procedural checkerboard mapped onto a SPHERE using
+//   spherical (latitude–longitude) parameterization.
+//
+// HISTORICAL / MATHEMATICAL CONTEXT:
+//   • Spherical coordinates formalized by:
+//       - Hipparchus (2nd century BCE)
+//       - Ptolemy (2nd century CE)
+//   • Used historically for:
+//       - star catalogs
+//       - planetary navigation
+//       - early cartography
+//   • This exact mapping is known as an EQUIRECTANGULAR PROJECTION.
+//
+// GEOMETRIC INSIGHT:
+//   On a perfect sphere, the normalized surface normal equals the radial
+//   position vector — a fact formalized by Gauss (1827).
+//   This allows UV coordinates to be derived directly from normals.
+//
+// PHYSICAL INTERPRETATION:
+//   This discretizes angular space on a curved manifold, analogous to
+//   latitude–longitude grids used in:
+//       - climate models
+//       - magnetic field sampling
+//       - planetary surface meshing
+//
+// PARAMETERS:
+//   n     : normalized surface normal at the hit point
+//   scale : number of checker divisions per angular axis
+//
+// RETURN VALUE:
+//   true  -> red square
+//   false -> black square
+// ============================================================================
+static inline bool Checker_SphericalUV_LatLong(Vector3D n, float scale)
+{
+    // Compute azimuth (longitude) angle using atan2.
+    // atan2 avoids quadrant ambiguity and spans [-π, +π].
+    float u = atan2f(n.z, n.x);
+
+    // Normalize longitude from angular range to [0, 1].
+    // This mirrors historical map projections of the Earth.
+    u = (u / (2.0f * M_PI)) + 0.5f;
+
+    // Compute elevation (latitude) using arcsin.
+    // Range is [-π/2, +π/2], corresponding to south ↔ north poles.
+    float v = asinf(n.y);
+
+    // Normalize latitude to [0, 1].
+    // This introduces polar distortion, identical to cartographic maps.
+    v = 0.5f - (v / M_PI);
+
+    // Convert continuous UV space into discrete checker cells.
+    // This is angular discretization of a curved surface.
+    int cu = (int)(u * scale);
+    int cv = (int)(v * scale);
+
+    // XOR parity across UV grid to produce alternating pattern.
+    return ((cu ^ cv) & 1) != 0;
+}
+
+
+
 TShutdownMode CKernel::Run(void)
 {
     Vector3D Camera = {0,0,-3};
     Vector3D Sphere = {0,0,0};
     Vector3D Light  = Normalize({1,1,1});
+	float sphere_zoom_in_zoom_out = 1.0f;
 
     while (1)
     {
         Clear();
+		sphere_zoom_in_zoom_out += 0.2f;
 
         for (unsigned y = 0; y < m_Screen.GetHeight(); y++)
         for (unsigned x = 0; x < m_Screen.GetWidth(); x++)
@@ -113,31 +235,21 @@ TShutdownMode CKernel::Run(void)
             float v = (1.0f - 2.0f*y/m_Screen.GetHeight());
 
             Vector3D rd = Normalize({u,v,1});
-            float t = SphereIntersect(Camera, rd, Sphere, 1.0f);
+            float t = SphereIntersect(Camera, rd, Sphere, sphere_zoom_in_zoom_out);
 
             if (t > 0)
             {
                 Vector3D p = Add(Camera, Mul(rd, t));
                 Vector3D n = Normalize(Sub(p, Sphere));
-				/* -------- checker projection -------- */
-
-				// scale controls checker size
-				const float scale = 8.0f;   // bigger squares
-				//const float scale = 8.0f;   // smaller squares
-
-
-				// project in world XZ plane (stable, no UVs needed)
-				int cx = (int)(p.x * scale);
-				int cz = (int)(p.z * scale);
-
-				// XOR pattern
-				bool checker = (cx ^ cz) & 1;
+				
+				bool checker = Checker_WorldSpacePlanar_XZ(p, 32.0f);
+				//bool checker = Checker_SphericalUV_LatLong(n, 32.0f);
 
 				// red & black (current)
-				unsigned base_r = checker ? 255 : 0;
+				//unsigned base_r = checker ? 255 : 0;
 
 				// red & white
-				base_r = checker ? 255 : 255;
+				unsigned base_r = checker ? 255 : 255;
 				unsigned base_g = checker ? 0   : 255;
 				unsigned base_b = checker ? 0   : 255;
 
@@ -171,7 +283,7 @@ TShutdownMode CKernel::Run(void)
             }
         }
 
-        CTimer::Get()->MsDelay(16);
+        CTimer::Get()->MsDelay(33);
     }
 
     return ShutdownHalt;
