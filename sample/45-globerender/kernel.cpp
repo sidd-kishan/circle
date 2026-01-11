@@ -54,6 +54,9 @@ boolean CKernel::Initialize(void)
 // ------------------------------------------------------------
 // MAIN LOOP — Correct spherical checkerboard
 // ------------------------------------------------------------
+// ------------------------------------------------------------
+// MAIN LOOP — TRUE SPHERE + CHECKER + SPIN
+// ------------------------------------------------------------
 TShutdownMode CKernel::Run(void)
 {
     const unsigned W = m_2DGraphics.GetWidth();
@@ -67,52 +70,66 @@ TShutdownMode CKernel::Run(void)
 
     while (1)
     {
-        time += 0.04f;
+        time += 0.04f;   // rotation speed
 
         m_2DGraphics.ClearScreen(CDisplay::Black);
 
-        for (int y = -R; y <= R; y++)
+        // ----------------------------------------------------
+        // Render filled sphere via scanlines
+        // ----------------------------------------------------
+        for (int py = -R; py <= R; py++)
         {
-            float fy = (float)y / R;
-            float y2 = fy * fy;
-
+            float y = (float)py / R;             // [-1,1]
+            float y2 = y * y;
             if (y2 > 1.0f)
                 continue;
 
-            float xr = sqrtf(1.0f - y2);
-            int xspan = (int)(xr * R);
+            // half-width of sphere at this latitude
+            float xspan = sqrtf(1.0f - y2);
+            int pxmax = (int)(xspan * R);
 
-            // latitude (−π/2 → π/2)
-            float v = asinf(fy);
-
-            for (int x = -xspan; x <= xspan; x++)
+            for (int px = -pxmax; px <= pxmax; px++)
             {
-                float fx = (float)x / R;
+                float x = (float)px / R;
+                float z = sqrtf(1.0f - x*x - y*y);
 
-                // longitude (−π → π)
-                float u = atan2f(fx, xr);
+                // ------------------------------------------------
+                // SPIN: rotate longitude over time
+                // ------------------------------------------------
+                float lon = atan2f(z, x) + time;   // <<< SPIN
+                float lat = asinf(y);
 
-                // checker frequency
-                int iu = (int)((u + M_PI) * 4.0f);
-                int iv = (int)((v + M_PI/2) * 4.0f);
+                // Normalize to [0,1]
+                float u = lon / (2.0f * 3.1415926f);
+                float v = lat / 3.1415926f;
 
-                bool checker = ((iu ^ iv) & 1);
+                u -= floorf(u);   // wrap
+                v += 0.5f;
+
+                // ------------------------------------------------
+                // TRUE CHECKERBOARD ON SPHERE
+                // ------------------------------------------------
+                const int checkerU = 12;   // columns
+                const int checkerV = 12;   // rows
+
+                int cu = (int)(u * checkerU);
+                int cv = (int)(v * checkerV);
+
+                bool checker = ((cu ^ cv) & 1) != 0;
 
                 T2DColor col = checker
                     ? CDisplay::BrightRed
                     : CDisplay::White;
 
-                // Draw single pixel as a 1-pixel line
-                m_2DGraphics.DrawLine(
-                    cx + x, cy + y,
-                    cx + x, cy + y,
+                m_2DGraphics.DrawPixel(
+                    cx + px,
+                    cy + py,
                     col
                 );
             }
         }
 
         m_2DGraphics.UpdateDisplay();
-        CTimer::Get()->MsDelay(33);
     }
 
     return ShutdownHalt;
