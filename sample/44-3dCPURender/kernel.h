@@ -46,8 +46,6 @@ public:
 
 	TShutdownMode Run (void);
 
-private:
-	// Rendering functions
 	void Clear (void);
 	Point2D Screen (const Vector3D &p);
 	Vector3D Project (const Vector3D &p);
@@ -61,7 +59,6 @@ private:
 	CKernelOptions		m_Options;
 	CDeviceNameService	m_DeviceNameService;
 	C2DGraphics		m_2DGraphics;
-	CGraphicShape		*m_pShape;
 };
 
 #endif

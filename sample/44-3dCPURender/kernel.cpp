@@ -23,6 +23,7 @@
 #include <math.h>
 #include <stdlib.h>
 
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -106,6 +107,46 @@ Vector3D CKernel::RotateXZ (const Vector3D &v, float angle)
 	);
 }
 
+void CKernel::DrawLine (int x1, int y1, int x2, int y2)
+{
+	int dx = (x2 > x1) ? (x2 - x1) : (x1 - x2);
+	int dy = (y2 > y1) ? (y2 - y1) : (y1 - y2);
+	int sx = (x1 < x2) ? 1 : -1;
+	int sy = (y1 < y2) ? 1 : -1;
+	int err = dx - dy;
+	
+	unsigned width = screen_width; //m_Screen.GetWidth ();
+	unsigned height = screen_height; //m_Screen.GetHeight ();
+	
+	int x = x1;
+	int y = y1;
+	
+	while (1)
+	{
+		// Only draw if within screen bounds
+		if (x >= 0 && (unsigned) x < width && y >= 0 && (unsigned) y < height)
+		{
+			m_2DGraphics.DrawPixel ((unsigned) x, (unsigned) y, CDisplay::Green);
+		}
+		
+		if (x == x2 && y == y2)
+			break;
+			
+		int e2 = 2 * err;
+		
+		if (e2 > -dy)
+		{
+			err -= dy;
+			x += sx;
+		}
+		
+		if (e2 < dx)
+		{
+			err += dx;
+			y += sy;
+		}
+	}
+}
 
 TShutdownMode CKernel::Run (void)
 {
@@ -115,7 +156,7 @@ TShutdownMode CKernel::Run (void)
 	
 	float angle = 0.0f;
 	float dz = 1.0f;
-	m_pShape = new CGraphicShape (&m_2DGraphics);
+	//m_pShape = new CGraphicShape (&m_2DGraphics);
 	
 	while (1)
 	{
@@ -152,12 +193,13 @@ TShutdownMode CKernel::Run (void)
 					// Convert to screen coordinates and draw line
 					Point2D screen_a = Screen (proj_a);
 					Point2D screen_b = Screen (proj_b);
-					m_pShape->DrawLine(screen_a.x, screen_a.y, screen_b.x, screen_b.y, FOREGROUND_COLOR);
-					//DrawLine (screen_a.x, screen_a.y, screen_b.x, screen_b.y);
+					m_2DGraphics.DrawLine(screen_a.x, screen_a.y, screen_b.x, screen_b.y, CDisplay::Green);
+					//m_2DGraphics.DrawText(400, 0, CDisplay::White, "Hello Circle! %d", C2DGraphics::AlignCenter);
+					//DrawLine(screen_a.x, screen_a.y, screen_b.x, screen_b.y);
 				}
 			}
 		}
-		
+		m_2DGraphics.UpdateDisplay();
 		CTimer::SimpleMsDelay (frame_delay_ms);
 	}
 
